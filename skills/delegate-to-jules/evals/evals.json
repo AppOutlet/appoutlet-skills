@@ -1,0 +1,29 @@
+{
+  "skill_name": "delegate-to-jules",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm done planning. Can you delegate this to Jules? I have the plan file saved in .gemini/plans/plan-123.md.",
+      "expected_output": "The agent should run `jules version`, find the plan in the file, and then run `jules remote new --session ...`.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Let Jules do the work for the plan we just talked about (adding a new login screen).",
+      "expected_output": "The agent should check for a plan file, find none, use ask_user to confirm using context, then run jules remote new.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Pass this to jules please.",
+      "expected_output": "The agent should ask if the user wants to use current context since there is no specific plan mentioned or file provided.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Delegate to Jules",
+      "expected_output": "The agent should search for a plan, and if none is found, ask to use current context or abort, then run jules remote new.",
+      "files": []
+    }
+  ]
+}
