@@ -56,7 +56,8 @@ Follow this sequence every time:
 4. Draft the ticket using the exact structure from the chosen template.
 5. Present the draft to the user and ask whether it is good enough or what should change.
 6. Revise and re-present the draft until the user explicitly approves creation.
-7. Write the body to `/tmp/issue_body.md` and create the issue with `gh issue create --body-file /tmp/issue_body.md --web`.
+7. Derive a slug from the issue title by lowercasing and replacing spaces with underscores (e.g., `fix_image_parsing`). Write the body to `.opencode/issues/<slug>.md`, creating the directory if it does not exist, then create the issue with `gh issue create --body-file .opencode/issues/<slug>.md`.
+8. Open the created issue URL in the browser: `open <url>` on macOS, `xdg-open <url>` on Linux, or `start <url>` on Windows.
 
 Never skip the duplicate check, codebase investigation, or explicit approval steps.
 
@@ -124,8 +125,15 @@ Approval must be explicit. Accept clear confirmations such as `approved`, `creat
 
 Once the user explicitly approves:
 
-1. Write the approved body to `/tmp/issue_body.md` using the Write file tool. Write the raw markdown content exactly as it appears inside the draft code block — **do not include the opening ` ```markdown ` or closing ` ``` ` fence delimiters in the file**. The file must contain only the plain markdown body that GitHub will render.
-2. Create the issue and open it in the browser in one step: `gh issue create --title "..." --body-file /tmp/issue_body.md --web`
+1. Derive a slug from the issue title: lowercase the title and replace spaces (and any consecutive non-alphanumeric characters) with underscores, trimming leading/trailing underscores. For example, `Fix image parsing crash` → `fix_image_parsing_crash`.
+2. Ensure the `.opencode/issues/` directory exists (create it if needed).
+3. Write the approved body to `.opencode/issues/<slug>.md` using the Write file tool. Write the raw markdown content exactly as it appears inside the draft code block — **do not include the opening ` ```markdown ` or closing ` ``` ` fence delimiters in the file**. The file must contain only the plain markdown body that GitHub will render.
+4. Create the issue: `gh issue create --title "..." --body-file .opencode/issues/<slug>.md`
+   Capture the URL printed by `gh issue create` (it is the last line of its output).
+5. Open the issue URL in the default browser:
+   - macOS: `open <url>`
+   - Linux: `xdg-open <url>`
+   - Windows: `start <url>`
 
 Never use `--body` with an inline string for multiline content — shell escaping will corrupt backticks and other characters. Always use `--body-file`.
 
@@ -145,4 +153,6 @@ During the draft phase, the response should contain:
 After creation, the response should contain:
 
 - The final issue title
-- A confirmation that the browser was opened via `--web`
+- The path where the issue body was saved (`.opencode/issues/<slug>.md`)
+- The created issue URL
+- Confirmation that the browser was opened
