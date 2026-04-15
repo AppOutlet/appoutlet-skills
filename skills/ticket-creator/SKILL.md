@@ -18,6 +18,16 @@ Use this skill to turn a user request into a high-quality GitHub issue through i
 
 Do not draft or create the ticket until the GitHub CLI requirement is satisfied.
 
+## Sentry Integration
+
+If the user request contains a Sentry Issue (a short ID like `DISCORKIE-FT`, a regular ID like `111242862`, or a URL like `https://appoutlet.sentry.io/issues/111242862/?...`), before proceeding to ticket creation, perform the following Sentry fetch process:
+
+1. **Preflight Sentry:** Check if the Sentry CLI is installed and authenticated by running `sentry auth status`. If the CLI is not installed or the user is not authenticated, inform the user and abort the ticket creation process.
+2. **Extract the ID:** The ID can be a short ID (e.g., `DISCORKIE-FT`), a regular ID (e.g., `111242862`), or extracted from a URL (the number on the path after the `issues` segment).
+3. **Fetch Issue Info:** Run `sentry issue view [issue_id]` to fetch the basic issue information.
+4. **Investigate Events:** To further understand the problem, list the events for the issue by running `sentry event list [issue_id] --json`. Then, extract the event ID from the `id` field of the JSON output and fetch its details by running `sentry event view [event_id]`.
+5. **Proceed:** After gathering and understanding this information, proceed to the regular bug ticket creation workflow, incorporating these technical details into the draft (e.g., in the Description, Steps to Reproduce, and Additional Information sections).
+
 ## Understand The Assignment
 
 Start by understanding three things:
@@ -50,14 +60,15 @@ Treat the selected file as the source of truth for the draft structure. Keep the
 
 Follow this sequence every time:
 
-1. Understand the assignment and infer or confirm the ticket type.
-2. Search for existing issues in the current repository to avoid duplicates.
-3. Investigate the codebase for relevant files, implementation details, constraints, and technical context.
-4. Draft the ticket using the exact structure from the chosen template.
-5. Present the draft to the user and ask whether it is good enough or what should change.
-6. Revise and re-present the draft until the user explicitly approves creation.
-7. Derive a slug from the issue title by lowercasing and replacing spaces with underscores (e.g., `fix_image_parsing`). Write the body to `.opencode/issues/<slug>.md`, creating the directory if it does not exist, then create the issue with `gh issue create --body-file .opencode/issues/<slug>.md`.
-8. Open the created issue URL in the browser: `open <url>` on macOS, `xdg-open <url>` on Linux, or `start <url>` on Windows.
+1. If a Sentry ID or link was provided, execute the Sentry Integration steps.
+2. Understand the assignment and infer or confirm the ticket type.
+3. Search for existing issues in the current repository to avoid duplicates.
+4. Investigate the codebase for relevant files, implementation details, constraints, and technical context.
+5. Draft the ticket using the exact structure from the chosen template.
+6. Present the draft to the user and ask whether it is good enough or what should change.
+7. Revise and re-present the draft until the user explicitly approves creation.
+8. Derive a slug from the issue title by lowercasing and replacing spaces with underscores (e.g., `fix_image_parsing`). Write the body to `.opencode/issues/<slug>.md`, creating the directory if it does not exist, then create the issue with `gh issue create --body-file .opencode/issues/<slug>.md`.
+9. Open the created issue URL in the browser: `open <url>` on macOS, `xdg-open <url>` on Linux, or `start <url>` on Windows.
 
 Never skip the duplicate check, codebase investigation, or explicit approval steps.
 
