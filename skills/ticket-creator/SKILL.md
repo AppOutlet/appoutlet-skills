@@ -1,6 +1,6 @@
 ---
 name: ticket-creator
-description: Drafts, refines, de-duplicates, and creates GitHub issue tickets for project management work. Use this skill whenever the user wants to write, draft, refine, or create a ticket or GitHub issue for a bug, task, spike, feature, backlog item, or similar work item, even if they only describe the problem and do not name the ticket type.
+description: Drafts, refines, de-duplicates, and creates GitHub issue tickets for project management work. Use this skill whenever the user wants to write, draft, refine, or create a ticket or GitHub issue for a bug, task, spike, feature, backlog item, or similar work item, even if they only describe the problem and do not name the ticket type. Also use this skill to review and improve existing tickets, to plan and break down features into multiple tickets, and whenever the user asks to "review a ticket", "break down a feature", "plan tickets", or shares a GH issue link for feedback.
 compatibility: Requires GitHub CLI (`gh`), network access to the repository's GitHub issues, and the ability to open a browser or URL handler after issue creation.
 ---
 
@@ -30,11 +30,18 @@ If the user request contains a Sentry Issue (a short ID like `DISCORKIE-FT`, a r
 
 ## Understand The Assignment
 
-Start by understanding three things:
+Before writing anything, confirm you can answer three questions clearly:
 
-1. What problem or work item is the user describing?
-2. What is the likely ticket type?
-3. What is the intention behind the ticket: fix a broken behavior, deliver new capability, track operational work, or investigate uncertainty?
+1. **What problem does this solve?** — Be specific. "The login page crashes" not "auth is broken."
+2. **Who benefits?** — Which user persona, role, or system? A vague answer means the scope is unbounded.
+3. **What does "done" look like?** — What observable change would a teammate or QA engineer see and verify?
+
+If any of these three answers are unclear or missing, **stop and ask the user focused questions**. A few targeted questions produce a better ticket than a draft built on assumptions.
+
+Also determine the ticket type and intention:
+
+1. What is the likely ticket type?
+2. What is the intention: fix broken behavior, deliver new capability, track operational work, or investigate uncertainty?
 
 Infer the type when it is obvious:
 
@@ -58,6 +65,14 @@ Treat the selected file as the source of truth for the draft structure. Keep the
 
 ## Workflow
 
+There are three distinct entry points into this skill. Choose based on what the user is doing:
+
+- **Creating a new ticket** → Follow the full sequence below.
+- **Reviewing an existing ticket** → Skip to [Improving Existing Tickets](#improving-existing-tickets).
+- **Planning and breaking down a feature** → Skip to [Feature Planning & Ticket Breakdown](#feature-planning--ticket-breakdown).
+
+### New ticket creation sequence
+
 Follow this sequence every time:
 
 1. If a Sentry ID or link was provided, execute the Sentry Integration steps.
@@ -65,12 +80,13 @@ Follow this sequence every time:
 3. Search for existing issues in the current repository to avoid duplicates.
 4. Investigate the codebase for relevant files, implementation details, constraints, and technical context.
 5. Draft the ticket using the exact structure from the chosen template.
-6. Present the draft to the user and ask whether it is good enough or what should change.
-7. Revise and re-present the draft until the user explicitly approves creation.
-8. Derive a slug from the issue title by lowercasing and replacing spaces with underscores (e.g., `fix_image_parsing`). Write the body to `.opencode/issues/<slug>.md`, creating the directory if it does not exist, then create the issue with `gh issue create --body-file .opencode/issues/<slug>.md`.
-9. Open the created issue URL in the browser: `open <url>` on macOS, `xdg-open <url>` on Linux, or `start <url>` on Windows.
+6. Perform a [Self-Review](#self-review) of the draft before showing it to the user.
+7. Present the draft to the user and ask whether it is good enough or what should change.
+8. Revise and re-present the draft until the user explicitly approves creation.
+9. Derive a slug from the issue title by lowercasing and replacing spaces with underscores (e.g., `fix_image_parsing`). Write the body to `.opencode/issues/<slug>.md`, creating the directory if it does not exist, then create the issue with `gh issue create --body-file .opencode/issues/<slug>.md`.
+10. Open the created issue URL in the browser: `open <url>` on macOS, `xdg-open <url>` on Linux, or `start <url>` on Windows.
 
-Never skip the duplicate check, codebase investigation, or explicit approval steps.
+Never skip the duplicate check, codebase investigation, self-review, or explicit approval steps.
 
 ## Duplicate Check
 
@@ -118,6 +134,31 @@ Type-specific expectations:
 - `task`: keep the title outcome-oriented and ensure acceptance criteria describe outcomes, not vague activity.
 - `spike`: title must start with `Spike: ` and `### Current Knowledge` should capture what the investigation already uncovered.
 - `feature`: the description should cover the problem, user benefit, technical considerations, and design references when available; each acceptance criterion should use a `GIVEN` / `WHEN` / `THEN` checklist item.
+
+## Self-Review
+
+Before presenting any draft to the user, challenge your own work. Walk through these checks silently, and fix issues before showing the ticket:
+
+1. **Read the title alone.** Does it tell you what this ticket accomplishes without opening it? A title like "Fix bug" or "Update module" fails this test. The title should describe the outcome, not the activity.
+
+2. **Read the description as someone with no context.** A developer who has never heard of this feature should understand the "why" immediately and know where the scope ends. If the description assumes tribal knowledge, fill in the gaps.
+
+3. **Read each acceptance criterion.** Two questions:
+   - Could a QA engineer verify it without asking a developer what it means?
+   - Could an AI coding agent use it as a definition of done?
+   If the answer to either is no, rewrite the criterion to be concrete and observable.
+
+4. **Hunt for weasel words.** "Properly", "appropriately", "as expected", "correct", "handle errors correctly" — these mean nothing without a concrete definition. Replace every weasel word with a specific, verifiable behavior. Instead of "handles errors properly", write "displays an inline error message below the field and disables the submit button until the field is valid."
+
+5. **Check for hidden scope.** Ask: does this ticket quietly require work that should be its own ticket? Examples:
+   - A "simple UI tweak" that requires a new API endpoint
+   - A "quick fix" that needs a database migration
+   - A "minor change" that affects three platforms (iOS, Android, web)
+   Flag these hidden dependencies — either scope them explicitly or split them into separate tickets.
+
+Proactively surface what's missing: error states, empty states, loading states, edge cases, permissions, analytics/tracking, and backwards compatibility. If the ticket is silent on these, add them or flag them for discussion.
+
+If you find issues during self-review, fix them before presenting. The draft the user sees should already have passed these checks.
 
 ## Iteration Loop
 
@@ -167,3 +208,75 @@ After creation, the response should contain:
 - The path where the issue body was saved (`.opencode/issues/<slug>.md`)
 - The created issue URL
 - Confirmation that the browser was opened
+
+## Improving Existing Tickets
+
+When the user shares a ticket for review (paste, link, or file), follow this workflow:
+
+### 1. Read with zero context
+
+Read the ticket as a developer who has never heard of this feature before. Note every place where you needed to guess, assume, or fill in gaps — those are exactly the places the ticket is weak.
+
+### 2. Rewrite, don't just critique
+
+Don't just say "this could be clearer." Rewrite the weak parts inline so the user can see the difference between the original and the improved version. Present the improved ticket as a complete artifact in a fenced Markdown code block.
+
+### 3. Provide structured feedback
+
+Group your observations in chat by severity:
+
+- **Blockers** — The ticket can't be worked on as-is. Examples: missing acceptance criteria, contradictory requirements, undefined scope, no way to verify completion.
+- **Improvements** — The ticket is workable but likely to cause confusion or rework. Examples: vague language, implicit assumptions, missing edge cases, weasel words.
+- **Suggestions** — Nice-to-haves that would raise quality. Examples: better title, additional context, links to related tickets or code files.
+
+### 4. Explain the why
+
+For every improvement you suggest, explain *why* it matters. Example: "This criterion says 'handles errors correctly' — a dev might interpret that as a toast message, a retry, or a redirect. Specify which behavior you want."
+
+### 5. Present your review
+
+Keep the improved ticket and the rationale separate:
+- The **improved ticket** goes in a fenced Markdown code block as a clean artifact.
+- The **critique and rationale** go in the chat message outside the code block, organized by severity level.
+
+After presenting the review, ask whether the user wants to create the improved version as a new issue or update the existing one.
+
+## Feature Planning & Ticket Breakdown
+
+When the user describes a feature or goal (not a single ticket), follow this workflow:
+
+### 1. Clarify the goal
+
+Make sure you understand the user's intent before breaking anything down. Confirm: who is this for, what problem does it solve, and what's the minimum viable scope? If the goal is still fuzzy, ask focused questions.
+
+### 2. Think through all the work
+
+Before proposing tickets, mentally walk through every layer:
+- Backend API changes (new endpoints, schema migrations, auth, rate limiting)
+- Frontend UI (Android, iOS, web — each platform is potentially its own scope)
+- Design and UX (new screens, states, flows)
+- Data (new tables, migrations, backfills, data contracts)
+- Edge cases (empty states, loading states, error states, permissions)
+- Dependencies (what must exist before this can start)
+
+### 3. Propose a breakdown
+
+Present a summary in chat with:
+- **Ticket titles** grouped by area (backend, frontend, design, etc.)
+- **Dependencies and sequencing** — which tickets block others, suggested order of execution
+- **Scope boundaries** — what each ticket covers and what it explicitly excludes
+
+### 4. Iterate
+
+The first breakdown is a draft. Invite the user to challenge it, rearrange tickets, merge or split them. Refine until the user is satisfied, then offer to create each ticket individually using the standard creation workflow.
+
+Keep tickets small and focused. If a ticket covers more than one concern (e.g., "add the endpoint AND build the UI"), suggest splitting it.
+
+## What You Don't Do
+
+- **Don't write code or include code snippets in tickets.** Tickets describe what to build, not how to build it.
+- **Don't make architectural decisions.** Surface the questions (e.g., "Should this use a new table or extend the existing one?") and let the team decide.
+- **Don't assign tickets to individuals** unless the user explicitly asks.
+- **Don't estimate with false precision.** If you're unsure about story points, say so and suggest a range or a spike ticket to investigate.
+- **Don't assume the user has thought of everything.** Proactively surface: error states, empty states, loading states, edge cases, permissions, analytics/tracking, and backwards compatibility.
+- **Don't create mega-tickets.** If a ticket covers more than one concern, suggest splitting it. Small, focused tickets ship faster.
